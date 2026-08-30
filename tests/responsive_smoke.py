@@ -89,6 +89,7 @@ def init_script():
 def rendered_html():
     html = (WEB / "index.html").read_text(encoding="utf-8")
     css = (WEB / "styles.css").read_text(encoding="utf-8")
+    r4css = (WEB / "r4.css").read_text(encoding="utf-8")
     bridge = (WEB / "native-bridge.js").read_text(encoding="utf-8")
     local_api = (WEB / "local-api.js").read_text(encoding="utf-8")
     app = (WEB / "app.js").read_text(encoding="utf-8")
@@ -98,6 +99,7 @@ def rendered_html():
     import re
     html = re.sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>\s*', '', html)
     html = html.replace('<link rel="stylesheet" href="./styles.css">', f'<style>{css}</style>')
+    html = html.replace('<link rel="stylesheet" href="./r4.css">', f'<style>{r4css}</style>')
     prep = '<script>' + init_script() + '</script>'
     html = html.replace('<script src="./native-bridge.js" defer></script>', prep + '<script>' + bridge + '</script>')
     html = html.replace('<script src="./local-api.js" defer></script>', '<script>' + local_api + '</script>')

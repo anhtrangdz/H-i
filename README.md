@@ -1,50 +1,57 @@
-# Sổ Relax iOS R3 — Local-first
+# Sổ Relax iOS R4 — iPhone-first local app
 
-Bản iPhone của Sổ Relax chạy hoàn toàn trên thiết bị, không cần VPS, domain hay Node server.
-R3 thay toàn bộ lớp giao diện bằng thiết kế mobile-first theo ngôn ngữ iOS: system typography, grouped surfaces, translucent tab bar, bottom sheets, safe-area, keyboard-aware editor và responsive portrait/landscape.
+R4 rebuild toàn bộ visual layer của Sổ Relax cho iPhone. App vẫn local-first: không VPS, không domain, không Node server khi chạy trên máy.
+
+## R4 khác gì R3
+
+- Home, Tài chính, Nhật ký và Cài đặt được dựng lại hoàn toàn theo hierarchy iOS: large title, material surface, tab bar, sheet, grouped settings và edge-to-edge artwork.
+- Các màn Giao dịch, Ngân sách, Lịch, Mục tiêu, Phân tích, Nhật ký cá nhân được re-skin theo cùng design system.
+- 12 visual asset high-resolution được bundle local và thực sự được dùng trong UI; không dùng padding/file rác để tăng dung lượng.
+- `Viết nhật ký` điều hướng bằng state nội bộ, render editor ngay rồi focus `#dailyBody` trong cùng tap event. Không dùng hash/sessionStorage.
+- VisualViewport được dùng để nhận biết keyboard; bottom tab bar tự né khi bàn phím mở.
+- Save journal chủ động blur editor để dismiss keyboard sau khi lưu.
+- Biometrics không nằm trong UX chính; password local là đường mở khóa chuẩn.
+
+## Responsive iPhone
+
+UI dùng safe area `env(safe-area-inset-*)`, `100dvh`, scroll containers và breakpoint mobile-first. Browser QA render 10 route trên 14 viewport:
+
+- Portrait/fallback: 320, 350, 360, 375, 390, 393, 402, 420, 430, 440 pt.
+- Landscape: 844×390, 874×402, 932×430, 956×440.
+
+Các control chính được thiết kế quanh touch target iOS; QA chặn control nhỏ hơn 28 pt và horizontal overflow.
+
+## Visual assets R4
+
+`SoreRelax/Web/assets/r4/` chứa artwork local cho Home, Finance, Journal, Calendar, Goals, Insights, Settings, Auth và backup surfaces. Tổng bundle asset >5 MB raw và workflow kiểm tra các asset quan trọng có mặt trong `.app` trước khi đóng IPA.
 
 ## Kiến trúc
 
-- `SoreRelax/Web/` — UI mới + LocalAPI tương thích các route `/api/...` cũ.
-- `SoreRelax/SecureVault.swift` — vault local AES-GCM, password KDF, Keychain code nền, backup/restore.
-- `SoreRelax/NativeBridge.swift` — bridge giữa JavaScript và native Swift.
-- `SoreRelax/MediaSchemeHandler.swift` — đọc media mã hóa qua scheme local `sorelax-media://`.
-- `SoreRelax/ViewController.swift` — `WKWebView`, privacy cover, Files picker/share sheet, interactive keyboard dismissal.
-- `project.yml` — cấu hình XcodeGen.
-- `.github/workflows/build-ipa.yml` — build unsigned IPA bằng GitHub Actions.
+- `SoreRelax/Web/` — UI + LocalAPI compatibility layer.
+- `SoreRelax/SecureVault.swift` — AES-GCM vault, password-derived key protection, encrypted backup/media.
+- `SoreRelax/NativeBridge.swift` — JS ↔ Swift bridge.
+- `SoreRelax/MediaSchemeHandler.swift` — local encrypted media scheme.
+- `SoreRelax/ViewController.swift` — WKWebView shell, privacy cover, Files/share integration.
+- `project.yml` — XcodeGen config, bundle ID `com.prix.sorelax`.
+- `.github/workflows/build-ipa.yml` — unsigned iPhone Release build on GitHub macOS runner.
 
-Bundle ID cố định: `com.prix.sorelax`.
-Deployment target: iOS 15.0+.
+Version: `1.1.0 (4)`.
+Deployment target: iOS 15+.
 
-## Những thay đổi chính ở R3
+## Build trên GitHub
 
-- Bỏ UI desktop/sidebar cũ; toàn bộ navigation được thiết kế lại cho iPhone.
-- Bottom tab bar gồm Hôm nay, Tài chính, Thêm, Nhật ký, Khác.
-- Các mục Giao dịch, Ngân sách, Lịch, Mục tiêu, Phân tích, Cài đặt nằm trong bottom sheet `Khác`.
-- `Viết nhật ký hôm nay` render thẳng Daily editor và focus `textarea` ngay trong tap event; route không dùng URL hash/sessionStorage.
-- Khi input/textarea focus, bottom tab bar tự né để không cản bàn phím.
-- Daily editor đứng trước lịch trên portrait; landscape chuyển sang two-column.
-- Tự hỗ trợ light/dark system scheme và chế độ tối ấm hiện có.
-- Face ID/Touch ID **không được đưa vào UI R3**. Password local là cơ chế mở khóa chuẩn để tránh phụ thuộc vào hành vi signing/sideload. Code native nền được giữ để không phá format/khả năng nâng cấp sau này.
+1. Giải nén ZIP.
+2. Upload **nội dung bên trong thư mục R4** vào root repository GitHub (`main` hoặc `master`).
+3. GitHub → **Actions** → **Build unsigned IPA** → Run workflow.
+4. Tải artifact `SoreRelax-R4-unsigned-IPA`.
+5. Artifact chứa `SoreRelax-unsigned.ipa`, SHA256 và `build-xcode.log`.
+6. Import IPA vào SideStore để ký/cài.
 
-## Build IPA bằng GitHub Actions
-
-1. Tạo repository GitHub mới.
-2. Giải nén ZIP và upload **toàn bộ nội dung bên trong thư mục repo** lên branch `main` hoặc `master`.
-3. Mở **Actions** → **Build unsigned IPA**.
-4. Chọn **Run workflow** nếu workflow chưa tự chạy.
-5. Khi job xong, tải artifact `SoreRelax-unsigned-IPA`.
-6. Artifact chứa:
-   - `SoreRelax-unsigned.ipa`
-   - `SoreRelax-unsigned.ipa.sha256`
-   - `build-xcode.log`
-7. Import IPA vào SideStore để ký/cài.
-
-Workflow tạo Xcode project từ `project.yml`, chạy QA, build `Release-iphoneos` với code signing tắt, cưỡng chế `SoreRelax/Web` vào đúng `SoreRelax.app/Web`, rồi mới đóng IPA.
+Workflow cưỡng chế copy nguyên `SoreRelax/Web` vào `SoreRelax.app/Web` trước khi đóng IPA và kiểm tra `index.html`, `r4.css`, cùng R4 artwork trong payload.
 
 ## QA
 
-QA dependency-free chạy trong GitHub Actions:
+Dependency-free / CI:
 
 ```bash
 node --check SoreRelax/Web/native-bridge.js
@@ -54,28 +61,20 @@ node tests/local-api.test.js
 python3 scripts/qa_repo.py
 ```
 
-QA browser sâu hơn (khi máy có Chromium + Python Playwright):
+Browser release QA (Chromium + Playwright):
 
 ```bash
-python3 tests/responsive_smoke.py
 python3 tests/ui_interaction_smoke.py
+python3 tests/responsive_smoke.py
 ```
 
-`responsive_smoke.py` render 10 route trên 14 viewport iPhone/compact/landscape, kiểm tra horizontal overflow, tap target cực nhỏ và JS runtime errors. `ui_interaction_smoke.py` kiểm thử riêng regression `Viết nhật ký → Daily → focus editor`, lưu nhật ký, More-sheet navigation và Quick Add.
+`ui_interaction_smoke.py` kiểm tra riêng Home → Viết nhật ký → Daily → editor focus, save daily, More sheet và Quick Add transaction.
 
 ## Dữ liệu và bảo mật
 
-- Không có backend Internet và không gửi dữ liệu lên server.
+- Không gửi dữ liệu lên Internet trong runtime (`connect-src 'none'`).
 - Password không lưu plaintext.
-- Master key được bọc bằng khóa dẫn xuất từ password.
-- Vault và media dùng AES-GCM để bảo vệ confidentiality + integrity.
-- App ra background sẽ phủ privacy cover để giảm lộ nội dung trong App Switcher.
-- Backup `.sobackup` được mã hóa và xuất qua Files/Share Sheet.
-
-## Responsive iPhone
-
-UI dùng safe area `env(safe-area-inset-*)`, mobile-first layout, portrait + landscape và không hard-code theo một model. Bộ QA bao phủ từ 320 px fallback đến các width 360/375/390/393/402/420/430/440 pt cùng landscape 844/874/932/956.
-
-## Lưu ý update
-
-Giữ nguyên `PRODUCT_BUNDLE_IDENTIFIER = com.prix.sorelax` để update cùng app identity. Luôn xuất backup trước khi uninstall; xóa app có thể xóa dữ liệu sandbox local.
+- Vault/media dùng AES-GCM.
+- App background có privacy cover.
+- Backup `.sobackup` được mã hóa trước khi xuất qua Files/Share Sheet.
+- Luôn export backup trước khi uninstall app; xóa app có thể xóa sandbox local.

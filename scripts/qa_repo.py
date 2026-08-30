@@ -4,7 +4,7 @@ import re, sys, json
 root=Path(__file__).resolve().parents[1]
 web=root/'SoreRelax'/'Web'
 required=[
-  web/'index.html',web/'styles.css',web/'app.js',web/'native-bridge.js',web/'local-api.js',
+  web/'index.html',web/'styles.css',web/'r4.css',web/'app.js',web/'native-bridge.js',web/'local-api.js',
   root/'SoreRelax'/'SecureVault.swift',root/'SoreRelax'/'NativeBridge.swift',root/'SoreRelax'/'ViewController.swift',
   root/'SoreRelax'/'Info.plist',root/'project.yml'
 ]
@@ -19,6 +19,19 @@ for asset in re.findall(r'(?:src|href)="(\./[^"?#]+)"',html):
 for f in web.rglob('*'):
     if f.is_file() and f.stat().st_size==0:
         print('EMPTY_FILE',f.relative_to(root));sys.exit(1)
+
+# R4 ships real high-resolution bundled visual assets used by the interface.
+r4_assets=web/'assets'/'r4'
+required_r4=['home-ambient.jpg','finance-ambient.jpg','journal-ambient.jpg','calendar-ambient.jpg','goals-ambient.jpg','insights-ambient.jpg','settings-ambient.jpg','auth-ambient.jpg','welcome.jpg','journal-cover.jpg','goal-cover.jpg','vault-cover.jpg']
+for name in required_r4:
+    if not (r4_assets/name).exists():
+        print('MISSING_R4_ASSET',name);sys.exit(1)
+if sum((r4_assets/name).stat().st_size for name in required_r4) < 5_000_000:
+    print('R4_ASSET_BUNDLE_TOO_SMALL');sys.exit(1)
+r4_refs=(web/'r4.css').read_text()+'\n'+(web/'index.html').read_text()+'\n'+(web/'app.js').read_text()
+for name in required_r4:
+    if name not in r4_refs:
+        print('R4_ASSET_NOT_REFERENCED',name);sys.exit(1)
 # Reject old online-server copy or plaintext credential patterns in shipped Web code.
 joined='\n'.join((web/n).read_text() for n in ['index.html','app.js','local-api.js'])
 for bad in ['npm start','127.0.0.1:4173','so_session=','SO_SECURE_COOKIE']:

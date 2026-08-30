@@ -36,9 +36,9 @@ def main():
             assert state == {'route':'daily','active':'dailyBody','keyboardClass':True,'hasEditor':True}, state
 
             # Saving the daily entry must persist through LocalAPI and re-render without leaving Daily.
-            page.fill('#dailyBody', 'Nội dung kiểm thử R3')
+            page.fill('#dailyBody', 'Nội dung kiểm thử R4')
             page.click('[data-save-daily]')
-            page.wait_for_function("() => app.data.dailyEntries.some(e => e.date === app.dailyDate && e.body === 'Nội dung kiểm thử R3')", timeout=5000)
+            page.wait_for_function("() => app.data.dailyEntries.some(e => e.date === app.dailyDate && e.body === 'Nội dung kiểm thử R4')", timeout=5000)
             assert page.evaluate("() => document.querySelector('#pageWrap').dataset.route") == 'daily'
 
             # More sheet should close when routing to another destination.
