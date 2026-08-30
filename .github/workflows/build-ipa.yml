@@ -1,0 +1,87 @@
+name: Build unsigned IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26 and show tool versions
+        run: |
+          set -euxo pipefail
+          XCODE_APP="$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' -print | sort -V | tail -1 || true)"
+          if [ -n "$XCODE_APP" ]; then
+            sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          fi
+          sw_vers
+          xcodebuild -version
+          node --version
+          python3 --version
+
+      - name: Repository QA
+        run: |
+          set -euxo pipefail
+          node --check SoreRelax/Web/native-bridge.js
+          node --check SoreRelax/Web/local-api.js
+          node --check SoreRelax/Web/app.js
+          node tests/local-api.test.js
+          python3 scripts/qa_repo.py
+          plutil -lint SoreRelax/Info.plist
+
+      - name: Generate Xcode project
+        run: |
+          set -euxo pipefail
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+          xcodegen generate
+
+      - name: Build unsigned iPhone app
+        run: |
+          set -euxo pipefail
+          rm -rf build
+          xcodebuild \
+            -project SoreRelax.xcodeproj \
+            -scheme SoreRelax \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath "$PWD/build/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build | tee build-xcode.log
+
+      - name: Package IPA
+        run: |
+          set -euxo pipefail
+          APP="$PWD/build/DerivedData/Build/Products/Release-iphoneos/SoreRelax.app"
+          test -d "$APP"
+          test -f "$APP/Web/index.html"
+          rm -rf Payload SoreRelax-unsigned.ipa
+          mkdir Payload
+          cp -R "$APP" Payload/
+          /usr/bin/zip -qry SoreRelax-unsigned.ipa Payload
+          shasum -a 256 SoreRelax-unsigned.ipa | tee SoreRelax-unsigned.ipa.sha256
+          ls -lh SoreRelax-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SoreRelax-unsigned-IPA
+          path: |
+            SoreRelax-unsigned.ipa
+            SoreRelax-unsigned.ipa.sha256
+            build-xcode.log
+          if-no-files-found: error
+          retention-days: 30
