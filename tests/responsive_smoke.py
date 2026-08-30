@@ -119,6 +119,7 @@ def main():
                 page.on("pageerror", lambda e, errors=errors: errors.append(str(e)))
                 page.set_content(html, wait_until="load")
                 page.wait_for_selector("#appShell:not([hidden])", timeout=5000)
+                page.wait_for_function("() => document.querySelector('#authScreen').hidden === true && document.querySelector('#pageWrap').dataset.route", timeout=5000)
                 for route in ROUTES:
                     page.evaluate("r => render(r, false)", route)
                     page.wait_for_timeout(10)

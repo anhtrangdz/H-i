@@ -11,7 +11,7 @@ final class ViewController: UIViewController, UIDocumentPickerDelegate, WKNaviga
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(red: 0.95, green: 0.93, blue: 0.89, alpha: 1)
+        view.backgroundColor = .systemGroupedBackground
 
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
@@ -22,6 +22,9 @@ final class ViewController: UIViewController, UIDocumentPickerDelegate, WKNaviga
         webView = WKWebView(frame: .zero, configuration: config)
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
+        webView.scrollView.backgroundColor = .clear
         webView.allowsLinkPreview = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.keyboardDismissMode = .interactive

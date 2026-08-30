@@ -2,110 +2,117 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f3eee3">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#f2f2f7">
   <meta name="color-scheme" content="light dark">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: sorelax-media:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>Sổ — Tài chính & Nhật ký</title>
+  <title>Sổ Relax</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="noise" aria-hidden="true"></div>
+  <svg class="symbol-sprite" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 10.8 12 3.8l8.5 7v8.3a1.8 1.8 0 0 1-1.8 1.8H5.3a1.8 1.8 0 0 1-1.8-1.8z"/><path d="M9.2 20.9v-6.4h5.6v6.4"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4.2 6.2A2.2 2.2 0 0 1 6.4 4h10.5a2 2 0 0 1 2 2v2.1H6.1A2.6 2.6 0 0 0 3.5 10.7v6.9A2.4 2.4 0 0 0 5.9 20h12.2a2.4 2.4 0 0 0 2.4-2.4V9.2A1.1 1.1 0 0 0 19.4 8H6.1a2.6 2.6 0 0 0 0 5.2h14.4"/><path d="M16.8 10.6h3.7v4.1h-3.7a2.05 2.05 0 1 1 0-4.1Z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5h10.2A3.8 3.8 0 0 1 19 8.3V20H8.8A3.8 3.8 0 0 1 5 16.2Z"/><path d="M5 16.2A3.8 3.8 0 0 1 8.8 12.4H19"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.3" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.5"/><path d="m15.6 15.6 4.4 4.4"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.7 12s3.4-5.4 9.3-5.4S21.3 12 21.3 12 17.9 17.4 12 17.4 2.7 12 2.7 12Z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5.5 6.5 6.5L9 18.5"/></symbol>
+    <symbol id="i-transactions" viewBox="0 0 24 24"><path d="M7.3 3.5v15M3.8 7l3.5-3.5L10.8 7M16.7 20.5v-15M13.2 17l3.5 3.5 3.5-3.5"/></symbol>
+    <symbol id="i-budget" viewBox="0 0 24 24"><rect x="4" y="3.7" width="16" height="16.6" rx="3"/><path d="M8 8h8M8 12h5M8 16h7"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5.2" width="17" height="15" rx="3"/><path d="M7.5 3.4v3.7M16.5 3.4v3.7M3.5 9.2h17"/></symbol>
+    <symbol id="i-goal" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.3 13.5v-3l-2.1-.8a7 7 0 0 0-.8-1.8l.9-2-2.1-2.1-2 .9a7 7 0 0 0-1.8-.8L10.5 2h-3l-.8 2.1a7 7 0 0 0-1.8.8l-2-.9L.8 6.1l.9 2a7 7 0 0 0-.8 1.8L-1 10.5v3l2.1.8a7 7 0 0 0 .8 1.8l-.9 2 2.1 2.1 2-.9a7 7 0 0 0 1.8.8l.8 2.1h3l.8-2.1a7 7 0 0 0 1.8-.8l2 .9 2.1-2.1-.9-2a7 7 0 0 0 .8-1.8Z" transform="translate(2 0) scale(.83)"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10" width="15" height="10.5" rx="2.8"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="9.5" r="1.5"/><path d="m5.5 17 4.2-4.2 3.1 3.1 2.2-2.2 3.5 3.3"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="m4.5 19.5 3.7-.8L19 7.9a2.2 2.2 0 0 0 0-3.1l-.8-.8a2.2 2.2 0 0 0-3.1 0L4.3 14.8Z"/><path d="m13.7 5.4 4.9 4.9"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5.5 7.5h13M9 7.5V5.2h6v2.3M7.2 7.5l.8 12h8l.8-12M10 11v5M14 11v5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.3 4.3L19.2 7"/></symbol>
+  </svg>
 
   <section class="auth-screen" id="authScreen">
-    <div class="auth-visual" aria-hidden="true">
-      <img class="ambient-scene" src="./assets/visuals/window-scene.webp" alt="" decoding="async" fetchpriority="high">
-      <div class="auth-visual-copy"><span>Sổ</span><p>Tài chính và nhật ký, trong một không gian riêng.</p></div>
-    </div>
+    <div class="auth-orb auth-orb-a" aria-hidden="true"></div>
+    <div class="auth-orb auth-orb-b" aria-hidden="true"></div>
     <div class="auth-panel">
+      <div class="auth-brand" aria-hidden="true">
+        <div class="auth-app-icon">S</div>
+        <div><strong>Sổ Relax</strong><span>Riêng tư. Cục bộ. Của bạn.</span></div>
+      </div>
       <form class="auth-card" id="loginForm" hidden>
-        <span class="eyebrow">ĐĂNG NHẬP</span>
-        <h1>Chào mừng trở lại.</h1>
-        <p>Dữ liệu được mã hóa và lưu cục bộ trên iPhone. Không cần máy chủ hay Internet.</p>
-        <label class="field"><span>Mật khẩu</span><input id="loginPassword" type="password" autocomplete="current-password" minlength="10" required></label>
-        <button class="button-primary wide" type="submit">Mở Sổ</button>
-        <button class="button-soft wide biometric-login" id="biometricLogin" type="button" hidden>Face ID · Mở nhanh</button>
+        <div class="auth-copy"><h1>Mở Sổ</h1><p>Nhập mật khẩu để giải mã dữ liệu trên iPhone này.</p></div>
+        <label class="field ios-field"><span>Mật khẩu</span><input id="loginPassword" type="password" autocomplete="current-password" minlength="10" required placeholder="Mật khẩu"></label>
+        <button class="button-primary wide" type="submit">Tiếp tục</button>
         <div class="form-error" id="loginError"></div>
+        <p class="auth-footnote"><svg><use href="#i-lock"/></svg>Dữ liệu không rời khỏi thiết bị nếu bạn không xuất bản sao.</p>
       </form>
       <form class="auth-card" id="setupForm" hidden>
-        <span class="eyebrow">THIẾT LẬP LẦN ĐẦU</span>
-        <h1>Tạo khóa cho Sổ.</h1>
-        <p>Mật khẩu dùng để mở khóa kho dữ liệu mã hóa trên thiết bị. Mật khẩu không được lưu dạng rõ.</p>
-        <label class="field"><span>Tên hiển thị</span><input id="setupName" value="Prix" maxlength="60" required></label>
-        <label class="field"><span>Mật khẩu mới</span><input id="setupPassword" type="password" autocomplete="new-password" minlength="10" required></label>
-        <label class="field"><span>Nhập lại mật khẩu</span><input id="setupPasswordConfirm" type="password" autocomplete="new-password" minlength="10" required></label>
-        <button class="button-primary wide" type="submit">Hoàn tất thiết lập</button>
+        <div class="auth-copy"><h1>Tạo Sổ của bạn</h1><p>Một mật khẩu duy nhất để bảo vệ kho dữ liệu mã hóa cục bộ.</p></div>
+        <div class="grouped-form">
+          <label class="field ios-field"><span>Tên hiển thị</span><input id="setupName" value="Prix" maxlength="60" required placeholder="Tên của bạn"></label>
+          <label class="field ios-field"><span>Mật khẩu</span><input id="setupPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Tối thiểu 10 ký tự"></label>
+          <label class="field ios-field"><span>Xác nhận</span><input id="setupPasswordConfirm" type="password" autocomplete="new-password" minlength="10" required placeholder="Nhập lại mật khẩu"></label>
+        </div>
+        <button class="button-primary wide" type="submit">Tạo Sổ</button>
         <div class="form-error" id="setupError"></div>
       </form>
     </div>
   </section>
 
   <div class="app-shell" id="appShell" hidden>
-    <aside class="sidebar" aria-label="Điều hướng chính">
-      <div class="brand-wrap">
-        <button class="brand" data-route="home" aria-label="Về trang chủ">
-          <span class="brand-mark">S</span>
-          <span class="brand-copy"><strong>Sổ</strong><small>của riêng bạn</small></span>
-        </button>
-        <button class="sidebar-collapse" id="sidebarCollapse" aria-label="Thu gọn thanh bên">‹</button>
-      </div>
-
-      <nav class="nav-list">
-        <button class="nav-item active" data-route="home"><span class="nav-glyph">⌂</span><span>Tổng quan</span></button>
-        <button class="nav-item" data-route="money"><span class="nav-glyph">◒</span><span>Tài chính</span></button>
-        <button class="nav-item" data-route="transactions"><span class="nav-glyph">↕</span><span>Giao dịch</span></button>
-        <button class="nav-item" data-route="budgets"><span class="nav-glyph">▤</span><span>Ngân sách</span></button>
-        <div class="nav-separator"><span>NHẬT KÝ</span></div>
-        <button class="nav-item" data-route="daily"><span class="nav-glyph">☼</span><span>Hằng ngày</span></button>
-        <button class="nav-item" data-route="private"><span class="nav-glyph">✎</span><span>Cá nhân</span></button>
-        <div class="nav-separator"><span>KHÁC</span></div>
-        <button class="nav-item" data-route="calendar"><span class="nav-glyph">□</span><span>Lịch</span></button>
-        <button class="nav-item" data-route="goals"><span class="nav-glyph">◇</span><span>Mục tiêu</span></button>
-        <button class="nav-item" data-route="insights"><span class="nav-glyph">⌁</span><span>Phân tích</span></button>
-        <button class="nav-item" data-route="settings"><span class="nav-glyph">⚙</span><span>Cài đặt</span></button>
-      </nav>
-
-      <div class="sidebar-bottom">
-        <div class="soft-note"><span class="soft-note-icon">●</span><div><strong>Dữ liệu đang được lưu.</strong><small id="saveStatus">Mã hóa cục bộ trên iPhone</small></div></div>
-        <div class="profile-mini"><div class="avatar" id="profileAvatar">P</div><div class="profile-copy"><strong id="profileName">Prix</strong><small>Không gian cá nhân</small></div><button class="icon-button" id="lockButton" title="Khóa và đăng xuất">⌾</button></div>
-      </div>
-    </aside>
-
     <main class="main-column">
       <header class="topbar">
-        <button class="mobile-menu" id="mobileMenu" aria-label="Mở điều hướng">☰</button>
-        <button class="search-trigger" id="searchTrigger"><span class="search-icon">⌕</span><span>Tìm giao dịch, nhật ký, mục tiêu...</span><kbd>Ctrl K</kbd></button>
-        <div class="topbar-spacer"></div>
-        <button class="time-pill" id="moodTheme" title="Đổi không khí giao diện"><span class="sun-dot"></span><span>Thư giãn</span></button>
-        <button class="icon-button" id="privacyButton" title="Ẩn số tiền">◉</button>
-        <button class="quick-add" id="quickAdd"><span>＋</span> Thêm nhanh</button>
+        <button class="topbar-brand" data-route="home" aria-label="Trang chủ"><span class="mini-app-icon">S</span><span>Sổ</span></button>
+        <div class="topbar-actions">
+          <button class="circle-button" id="searchTrigger" aria-label="Tìm kiếm"><svg><use href="#i-search"/></svg></button>
+          <button class="circle-button" id="privacyButton" aria-label="Ẩn hoặc hiện số tiền"><svg><use href="#i-eye"/></svg></button>
+        </div>
       </header>
       <div class="page-wrap" id="pageWrap" aria-live="polite"></div>
     </main>
   </div>
 
-  <nav class="mobile-nav" id="mobileNav" aria-label="Điều hướng di động" hidden>
-    <button class="mobile-nav-item active" data-route="home"><span>⌂</span><small>Trang chủ</small></button>
-    <button class="mobile-nav-item" data-route="transactions"><span>↕</span><small>Giao dịch</small></button>
-    <button class="mobile-fab" id="mobileQuickAdd" aria-label="Thêm nhanh">＋</button>
-    <button class="mobile-nav-item" data-route="daily"><span>✎</span><small>Nhật ký</small></button>
-    <button class="mobile-nav-item" data-route="settings"><span>⚙</span><small>Cài đặt</small></button>
+  <nav class="mobile-nav" id="mobileNav" aria-label="Điều hướng chính" hidden>
+    <button class="mobile-nav-item active" data-route="home"><svg><use href="#i-home"/></svg><small>Hôm nay</small></button>
+    <button class="mobile-nav-item" data-route="money"><svg><use href="#i-wallet"/></svg><small>Tài chính</small></button>
+    <button class="mobile-add" id="mobileQuickAdd" aria-label="Thêm nhanh"><span><svg><use href="#i-plus"/></svg></span><small>Thêm</small></button>
+    <button class="mobile-nav-item" data-route="daily"><svg><use href="#i-book"/></svg><small>Nhật ký</small></button>
+    <button class="mobile-nav-item" id="mobileMenu"><svg><use href="#i-more"/></svg><small>Khác</small></button>
   </nav>
+
+  <div class="more-backdrop" id="moreBackdrop" hidden>
+    <section class="more-sheet" role="dialog" aria-modal="true" aria-label="Các mục khác">
+      <div class="sheet-grabber" aria-hidden="true"></div>
+      <div class="sheet-title-row"><div><span class="eyebrow">SỔ RELAX</span><h2>Khác</h2></div><button class="circle-button small" id="moreClose" aria-label="Đóng"><svg><use href="#i-x"/></svg></button></div>
+      <div class="more-grid">
+        <button data-route="transactions"><span class="more-icon blue"><svg><use href="#i-transactions"/></svg></span><b>Giao dịch</b><small>Thu, chi, chuyển tiền</small></button>
+        <button data-route="budgets"><span class="more-icon orange"><svg><use href="#i-budget"/></svg></span><b>Ngân sách</b><small>Giới hạn theo nhóm</small></button>
+        <button data-route="calendar"><span class="more-icon red"><svg><use href="#i-calendar"/></svg></span><b>Lịch</b><small>Nhật ký và dòng tiền</small></button>
+        <button data-route="goals"><span class="more-icon green"><svg><use href="#i-goal"/></svg></span><b>Mục tiêu</b><small>Kế hoạch dài hạn</small></button>
+        <button data-route="insights"><span class="more-icon purple"><svg><use href="#i-chart"/></svg></span><b>Phân tích</b><small>Nhìn lại thói quen</small></button>
+        <button data-route="settings"><span class="more-icon gray"><svg><use href="#i-settings"/></svg></span><b>Cài đặt</b><small>Bảo mật và sao lưu</small></button>
+      </div>
+      <button class="lock-row" id="lockButton"><span><svg><use href="#i-lock"/></svg></span><div><b>Khóa Sổ</b><small>Xóa khóa đang mở khỏi bộ nhớ</small></div><svg class="chev"><use href="#i-chevron"/></svg></button>
+    </section>
+  </div>
 
   <div class="modal-backdrop" id="quickBackdrop" hidden>
     <section class="modal-sheet" id="quickModal" role="dialog" aria-modal="true" aria-labelledby="quickTitle">
-      <div class="modal-head"><div><span class="eyebrow">THÊM NHANH</span><h2 id="quickTitle">Thêm giao dịch</h2></div><button class="icon-button" data-close="quick" aria-label="Đóng">×</button></div>
-      <div class="quick-tabs" role="tablist"><button class="quick-tab active" data-type="expense">Chi tiêu</button><button class="quick-tab" data-type="income">Thu nhập</button><button class="quick-tab" data-type="transfer">Chuyển tiền</button><button class="quick-tab" data-type="journal">Nhật ký</button></div>
+      <div class="sheet-grabber" aria-hidden="true"></div>
+      <div class="modal-head"><div><span class="eyebrow">THÊM NHANH</span><h2 id="quickTitle">Thêm giao dịch</h2></div><button class="circle-button small" data-close="quick" aria-label="Đóng"><svg><use href="#i-x"/></svg></button></div>
+      <div class="quick-tabs" role="tablist"><button class="quick-tab active" data-type="expense">Chi tiêu</button><button class="quick-tab" data-type="income">Thu nhập</button><button class="quick-tab" data-type="transfer">Chuyển</button><button class="quick-tab" data-type="journal">Nhật ký</button></div>
       <form id="quickForm" class="quick-form">
-        <div class="amount-field" id="amountBlock"><label for="quickAmount">Số tiền</label><div class="amount-input-wrap"><input id="quickAmount" data-money-input="1" inputmode="numeric" autocomplete="off" placeholder="0"><span>VND</span></div></div>
+        <div class="amount-field" id="amountBlock"><label for="quickAmount">Số tiền</label><div class="amount-input-wrap"><input id="quickAmount" data-money-input="1" inputmode="numeric" autocomplete="off" placeholder="0"><span>₫</span></div></div>
         <div class="form-grid money-fields" id="quickMoneyFields">
           <label class="field"><span id="quickCategoryLabel">Danh mục</span><select id="quickCategory"></select></label>
           <label class="field"><span id="quickAccountLabel">Tài khoản</span><select id="quickAccount"></select></label>
           <label class="field transfer-only" hidden><span>Đến tài khoản</span><select id="quickToAccount"></select></label>
           <label class="field"><span>Ngày</span><input id="quickDate" type="date"></label>
         </div>
-        <label class="toggle-line income-only" hidden><input id="quickAddToMonth" type="checkbox"><span><b>Cộng vào tiền tháng</b><small>Bật khi đây là khoản tiền phát sinh thêm, chưa nằm trong tổng tiền tháng bạn đã nhập.</small></span></label>
-        <label class="full-field"><span id="noteLabel">Ghi chú</span><textarea id="quickNote" rows="4" maxlength="2000" placeholder="Ví dụ: cà phê sáng, tiền điện, làm thêm..."></textarea></label>
+        <label class="toggle-line income-only" hidden><input id="quickAddToMonth" type="checkbox"><span><b>Cộng vào tiền tháng</b><small>Dùng khi đây là khoản tiền phát sinh ngoài kế hoạch.</small></span></label>
+        <label class="full-field"><span id="noteLabel">Ghi chú</span><textarea id="quickNote" rows="3" maxlength="2000" placeholder="Ghi chú ngắn..."></textarea></label>
         <div class="modal-actions"><button type="button" class="button-ghost" data-close="quick">Hủy</button><button type="submit" class="button-primary" id="quickSubmit">Lưu giao dịch</button></div>
       </form>
     </section>
@@ -113,13 +120,14 @@
 
   <div class="modal-backdrop" id="formBackdrop" hidden>
     <section class="modal-sheet compact" id="formModal" role="dialog" aria-modal="true">
-      <div class="modal-head"><div><span class="eyebrow" id="formEyebrow">CHỈNH SỬA</span><h2 id="formTitle">Cập nhật</h2></div><button class="icon-button" data-close="form" aria-label="Đóng">×</button></div>
+      <div class="sheet-grabber" aria-hidden="true"></div>
+      <div class="modal-head"><div><span class="eyebrow" id="formEyebrow">CHỈNH SỬA</span><h2 id="formTitle">Cập nhật</h2></div><button class="circle-button small" data-close="form" aria-label="Đóng"><svg><use href="#i-x"/></svg></button></div>
       <div id="formBody"></div>
     </section>
   </div>
 
   <div class="command-backdrop" id="commandBackdrop" hidden>
-    <section class="command-palette" role="dialog" aria-modal="true" aria-label="Tìm kiếm"><div class="command-input-wrap"><span>⌕</span><input id="commandInput" placeholder="Tìm bất cứ thứ gì..." autocomplete="off"><kbd>Esc</kbd></div><div class="command-results" id="commandResults"></div></section>
+    <section class="command-palette" role="dialog" aria-modal="true" aria-label="Tìm kiếm"><div class="command-input-wrap"><svg><use href="#i-search"/></svg><input id="commandInput" placeholder="Tìm trong Sổ..." autocomplete="off"><button type="button" data-command-close><svg><use href="#i-x"/></svg></button></div><div class="command-results" id="commandResults"></div></section>
   </div>
 
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
