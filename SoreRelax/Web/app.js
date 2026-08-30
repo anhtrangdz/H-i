@@ -44,6 +44,9 @@ const MONTHS = ['Tháng Một','Tháng Hai','Tháng Ba','Tháng Tư','Tháng Nă
 const CATEGORIES = ['Ăn uống','Di chuyển','Mua sắm','Hóa đơn','Nhà ở','Sức khỏe','Giải trí','Học tập','Gia đình','Quà tặng','Du lịch','Công việc','Khác'];
 const INCOME_CATEGORIES = ['Lương','Thưởng','Làm thêm','Kinh doanh','Hoàn tiền','Quà tặng','Thu nhập khác'];
 const MOODS = ['Bình yên','Vui','Ổn','Háo hức','Mệt','Buồn','Căng thẳng','Khó tả'];
+const MOOD_META = [
+  ['Bình yên','😌'],['Vui','😊'],['Ổn','🙂'],['Háo hức','🤩'],['Mệt','😮‍💨'],['Buồn','😔'],['Căng thẳng','😣'],['Khó tả','🫧']
+];
 
 const app = {
   csrf:null,
@@ -55,7 +58,11 @@ const app = {
   txQuery:'',
   dailyDate:new Date().toISOString().slice(0,10),
   dailyMediaIds:[],
-  dailyMediaDate:null,
+  dailyComposerOpen:false,
+  dailyEditorId:null,
+  dailyDraftMood:'',
+  dailyOriginalMediaIds:[],
+  dailyNewMediaIds:[],
   privateId:null,
   calendarDate:new Date().toISOString().slice(0,10),
   settingsSection:'profile',
@@ -164,7 +171,7 @@ function monthControls(){ return `<div class="r4-month-switcher"><button data-pr
 
 function homePage(){
   const s=monthStats();
-  const daily=(app.data.dailyEntries||[]).find(e=>e.date===app.dailyDate);
+  const daily=journalEntries(app.dailyDate)[0];
   const recent=[...(app.data.transactions||[])].sort((a,b)=>String(b.createdAt||b.date).localeCompare(String(a.createdAt||a.date))).slice(0,4);
   const cats=categorySpend().slice(0,4); const spentPct=Math.min(100,Math.max(0,Math.round(s.expenses/Math.max(s.available,1)*100)));
   return `<section class="r4-home-hero">
@@ -230,17 +237,60 @@ function monthCalendarButtons(selected){
   for(let d=1;d<=days;d++){const iso=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;out+=`<button class="${iso===selected?'active':''}" data-daily-date="${iso}">${d}</button>`;}
   return out;
 }
-function dailyPage(){
-  const entry=(app.data.dailyEntries||[]).find(e=>e.date===app.dailyDate)||{date:app.dailyDate,title:'',body:'',mood:'',mediaIds:[]};
-  if(app.dailyMediaDate!==app.dailyDate){app.dailyMediaIds=[...(entry.mediaIds||[])];app.dailyMediaDate=app.dailyDate;}
-  const hist=[...(app.data.dailyEntries||[])].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12);
+function journalEntries(date=app.dailyDate){
+  return (app.data?.dailyEntries||[]).filter(e=>e.date===date).sort((a,b)=>String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||'')));
+}
+function journalEntryById(id){return (app.data?.dailyEntries||[]).find(e=>e.id===id);}
+function captureJournalDraft(){
+  if(!app.dailyComposerOpen)return;
+  const title=$('#journalTitle'),body=$('#journalBody');
+  if(title)app.dailyDraftTitle=title.value;
+  if(body)app.dailyDraftBody=body.value;
+}
+function resetJournalDraft(){app.dailyEditorId=null;app.dailyDraftTitle='';app.dailyDraftBody='';app.dailyDraftMood='';app.dailyMediaIds=[];app.dailyOriginalMediaIds=[];app.dailyNewMediaIds=[];}
+function openJournalComposer(id=null,{focus=true}={}){
+  const e=id?journalEntryById(id):null;
+  app.dailyEditorId=e?.id||null; app.dailyComposerOpen=true;
+  app.dailyDraftTitle=e?.title||''; app.dailyDraftBody=e?.body||''; app.dailyDraftMood=e?.mood||''; app.dailyMediaIds=[...(e?.mediaIds||[])]; app.dailyOriginalMediaIds=[...(e?.mediaIds||[])]; app.dailyNewMediaIds=[];
+  render('daily',false);
+  if(focus)focusDailyEditor();
+}
+async function cleanupUnreferencedMedia(ids){
+  for(const id of [...new Set(ids||[])]){
+    try{await api(`/api/media/${encodeURIComponent(id)}`,{method:'DELETE'});app.data.media=app.data.media.filter(m=>m.id!==id);}catch(err){if(!/đang được dùng/i.test(err?.message||''))console.warn('Không dọn được ảnh nháp',id,err);}
+  }
+}
+async function closeJournalComposer(){
+  const newlyPicked=[...app.dailyNewMediaIds]; app.dailyComposerOpen=false; resetJournalDraft();
+  if(newlyPicked.length)await cleanupUnreferencedMedia(newlyPicked);
+  render('daily',false);
+}
+function journalCard(e){
+  const imgs=(e.mediaIds||[]).map(id=>app.data.media.find(m=>m.id===id)).filter(Boolean);
+  const stamp=new Date(e.createdAt||`${e.date}T12:00:00`);
+  const time=Number.isNaN(stamp.getTime())?'':new Intl.DateTimeFormat('vi-VN',{hour:'2-digit',minute:'2-digit'}).format(stamp);
+  return `<article class="r5-journal-card" data-edit-journal="${e.id}"><div class="r5-journal-card-top"><div><span class="r5-journal-time">${esc(time||'Đã lưu')}</span><h3>${esc(e.title||'Không tiêu đề')}</h3></div><span class="r5-journal-mood">${esc(MOOD_META.find(x=>x[0]===e.mood)?.[1]||'•')} <small>${esc(e.mood||'')}</small></span></div><p>${esc((e.body||'').slice(0,260))}</p>${imgs.length?`<div class="r5-journal-thumbs">${imgs.slice(0,3).map(m=>`<img src="${LocalAPI.mediaURL(m.id)}" alt="">`).join('')}${imgs.length>3?`<span>+${imgs.length-3}</span>`:''}</div>`:''}<div class="r5-card-foot"><span>${countWords(e.body||'')} từ</span><button class="r5-text-action" data-edit-journal="${e.id}">Mở & sửa</button></div></article>`;
+}
+function journalComposer(){
   const media=app.dailyMediaIds.map(id=>app.data.media.find(m=>m.id===id)).filter(Boolean);
-  return `${pageHead('NHẬT KÝ','Nhật ký','Không gian viết riêng trên iPhone của bạn.',`<button class="button-soft" data-daily-today>Hôm nay</button>`)}
-  <section class="r4-journal-stage"><div class="r4-journal-art" aria-hidden="true"></div><div class="r4-journal-date"><span>${esc(dateLabel(app.dailyDate))}</span><strong>${entry.mood?esc(entry.mood):'Một ngày mới'}</strong></div></section>
-  <div class="r4-day-strip" aria-label="Những ngày đã viết">${hist.map(e=>`<button class="${e.date===app.dailyDate?'active':''}" data-daily-date="${e.date}"><span>${new Date(`${e.date}T12:00:00`).getDate()}</span><small>${esc(e.mood||'•')}</small></button>`).join('')}<button class="today ${app.dailyDate===new Date().toISOString().slice(0,10)?'active':''}" data-daily-today><span>●</span><small>Hôm nay</small></button></div>
-  <article class="r4-journal-editor"><div class="r4-editor-toolbar"><span class="r4-chip">Chỉ lưu trên thiết bị</span><div><button class="button-ghost" data-delete-daily ${entry.id?'':'disabled'}>Xóa</button><button class="button-primary" data-save-daily>Lưu</button></div></div><input class="r4-journal-title" id="dailyTitle" maxlength="200" value="${esc(entry.title)}" placeholder="Đặt tên cho ngày hôm nay"><textarea class="r4-journal-body" id="dailyBody" maxlength="100000" placeholder="Bắt đầu viết ở đây…">${esc(entry.body)}</textarea>
-  <section class="r4-editor-section"><div class="r4-editor-label"><span>Tâm trạng</span><small>Chọn một cảm giác gần nhất</small></div><div class="r4-mood-scroll">${MOODS.map(m=>`<button class="r4-mood ${entry.mood===m?'active':''}" data-mood="${esc(m)}">${esc(m)}</button>`).join('')}</div></section>
-  <section class="r4-editor-section"><div class="r4-editor-label"><span>Ảnh của ngày</span><label class="r4-link" for="dailyPhotos">Thêm ảnh</label></div><input id="dailyPhotos" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple hidden><div class="r4-photo-grid">${media.map(m=>`<figure><img src="${LocalAPI.mediaURL(m.id)}" alt="${esc(m.name)}"><button data-remove-photo="${m.id}" aria-label="Bỏ ảnh">×</button></figure>`).join('')}<label class="r4-photo-add" for="dailyPhotos"><span>＋</span><small>Thêm ảnh</small></label></div><div class="upload-status" id="uploadStatus"></div></section></article>`;
+  const editing=Boolean(app.dailyEditorId);
+  return `<section class="r5-composer" aria-label="${editing?'Sửa bài nhật ký':'Viết bài nhật ký mới'}">
+    <header class="r5-composer-nav"><button class="r5-nav-button" data-cancel-journal>Hủy</button><div><small>${esc(shortDate(app.dailyDate))}</small><strong>${editing?'Sửa bài':'Bài mới'}</strong></div><button class="r5-nav-button primary" data-save-journal>Lưu</button></header>
+    <div class="r5-writing-paper"><input id="journalTitle" class="r5-writing-title" maxlength="200" value="${esc(app.dailyDraftTitle||'')}" placeholder="Tiêu đề (không bắt buộc)"><textarea id="journalBody" class="r5-writing-body" maxlength="100000" placeholder="Hôm nay của bạn thế nào?">${esc(app.dailyDraftBody||'')}</textarea><div class="r5-writing-count" id="journalWordCount">${countWords(app.dailyDraftBody||'')} từ</div></div>
+    <section class="r5-composer-section"><div class="r5-section-title"><div><b>Tâm trạng</b><small>Chọn cảm giác gần nhất</small></div>${app.dailyDraftMood?`<span>${esc(app.dailyDraftMood)}</span>`:''}</div><div class="r5-mood-grid">${MOOD_META.map(([m,icon])=>`<button class="r5-mood-pill ${app.dailyDraftMood===m?'active':''}" data-journal-mood="${esc(m)}"><span>${icon}</span><small>${esc(m)}</small></button>`).join('')}</div></section>
+    <section class="r5-composer-section"><div class="r5-section-title"><div><b>Ảnh</b><small>Chọn ảnh bằng trình chọn ảnh riêng tư của iOS</small></div><button class="r5-text-action" data-pick-journal-photos>Thêm ảnh</button></div><div class="r5-photo-grid">${media.map(m=>`<figure><img src="${LocalAPI.mediaURL(m.id)}" alt="${esc(m.name||'Ảnh')}"><button data-remove-journal-photo="${m.id}" aria-label="Bỏ ảnh">×</button></figure>`).join('')}<button class="r5-photo-add" data-pick-journal-photos><span>＋</span><small>${media.length?'Thêm':'Chọn ảnh'}</small></button></div><div id="journalPhotoStatus" class="r5-inline-status"></div></section>
+    ${editing?'<button class="r5-destructive-row" data-delete-journal>Xóa bài này</button>':''}
+  </section>`;
+}
+function dailyPage(){
+  const entries=journalEntries();
+  const today=new Date().toISOString().slice(0,10);
+  const allDates=[...new Set((app.data.dailyEntries||[]).map(e=>e.date))].filter(d=>d!==today).sort().reverse().slice(0,12);
+  if(app.dailyComposerOpen)return journalComposer();
+  return `${pageHead('NHẬT KÝ','Nhật ký','Mỗi lần lưu là một bài riêng. Bạn có thể viết nhiều bài trong cùng một ngày.',`<button class="button-primary" data-new-journal>＋ Viết bài mới</button>`)}
+  <section class="r5-journal-overview"><div class="r5-journal-artwork"><div><span>${esc(dateLabel(app.dailyDate))}</span><strong>${entries.length?`${entries.length} bài đã lưu`:'Một trang mới đang chờ bạn'}</strong></div></div>
+  <div class="r5-day-strip">${allDates.map(d=>`<button class="${d===app.dailyDate?'active':''}" data-daily-date="${d}"><span>${new Date(`${d}T12:00:00`).getDate()}</span><small>${new Intl.DateTimeFormat('vi-VN',{month:'short'}).format(new Date(`${d}T12:00:00`))}</small></button>`).join('')}<button class="${app.dailyDate===today?'active':''}" data-daily-today><span>●</span><small>Hôm nay</small></button></div></section>
+  <section class="r5-journal-list">${entries.length?entries.map(journalCard).join(''):`<article class="r5-empty-journal"><div>✎</div><h2>Chưa có bài nào hôm nay</h2><p>Viết một đoạn ngắn, chọn tâm trạng hoặc thêm vài tấm ảnh.</p><button class="button-primary" data-new-journal>Viết bài đầu tiên</button></article>`}</section>`;
 }
 
 function privatePage(){
@@ -284,18 +334,26 @@ const pages={home:homePage,money:moneyPage,transactions:transactionsPage,budgets
 
 function render(route=app.route,scroll=true){
   if(!pages[route])route='home';
-  app.route=route; pageWrap.dataset.route=route; pageWrap.innerHTML=pages[route](); bindPageEvents();
+  app.route=route; document.body.classList.toggle('journal-composing',route==='daily'&&app.dailyComposerOpen); pageWrap.dataset.route=route; pageWrap.innerHTML=pages[route](); bindPageEvents();
   $$('[data-route]').forEach(el=>el.classList.toggle('active',el.dataset.route===route));
   $$('.mobile-nav-item').forEach(el=>el.classList.toggle('active',el.dataset.route===route));
   if(scroll)window.scrollTo({top:0,behavior:'auto'});
 }
 function focusDailyEditor(){
-  const editor=$('#dailyBody'); if(!editor)return;
+  const editor=$('#journalBody'); if(!editor)return;
   try{editor.focus({preventScroll:true}); const n=editor.value.length; editor.setSelectionRange(n,n);}catch{editor.focus();}
   requestAnimationFrame(()=>editor.scrollIntoView({block:'center',behavior:'smooth'}));
 }
 function closeMore(){const el=$('#moreBackdrop');if(el)el.hidden=true;}
-function navigate(route,{focusDaily=false}={}){ closeMore(); render(route); if(focusDaily&&route==='daily')focusDailyEditor(); }
+async function navigate(route,{focusDaily=false}={}){
+  closeMore();
+  if(route==='daily'&&focusDaily){app.dailyDate=new Date().toISOString().slice(0,10);openJournalComposer(null,{focus:true});return;}
+  if(app.route==='daily'&&app.dailyComposerOpen){
+    const newlyPicked=[...app.dailyNewMediaIds];app.dailyComposerOpen=false;resetJournalDraft();if(newlyPicked.length)await cleanupUnreferencedMedia(newlyPicked);
+  }
+  if(route==='daily')app.dailyComposerOpen=false;
+  render(route);
+}
 
 function syncVisualViewport(){
   const vv=window.visualViewport; if(!vv)return;
@@ -309,7 +367,7 @@ function bindGlobal(){
   document.addEventListener('click',e=>{
     if(e.target.closest('#mobileMenu')){e.preventDefault();$('#moreBackdrop').hidden=false;return;}
     const r=e.target.closest('[data-route]');
-    if(r){e.preventDefault();navigate(r.dataset.route,{focusDaily:r.dataset.composeJournal==='1'});}
+    if(r && r!==pageWrap){e.preventDefault();navigate(r.dataset.route,{focusDaily:r.dataset.composeJournal==='1'});}
   });
   $('#moreClose')?.addEventListener('click',closeMore);
   $('#moreBackdrop')?.addEventListener('click',e=>{if(e.target===$('#moreBackdrop'))closeMore();});
@@ -341,8 +399,10 @@ function bindPageEvents(){
   $$('[data-tx-filter]').forEach(b=>b.addEventListener('click',()=>{app.txFilter=b.dataset.txFilter;render('transactions',false);})); $('#txSearch')?.addEventListener('input',e=>{app.txQuery=e.target.value;render('transactions',false);$('#txSearch')?.focus();});
   $$('[data-edit-tx]').forEach(b=>b.addEventListener('click',()=>openTxEdit(b.dataset.editTx))); $$('[data-delete-tx]').forEach(b=>b.addEventListener('click',()=>confirmAction('Xóa giao dịch?','Giao dịch sẽ bị xóa khỏi số liệu tháng.',()=>deleteTx(b.dataset.deleteTx))));
   $$('[data-add-budget]').forEach(b=>b.addEventListener('click',()=>openBudgetForm())); $$('[data-edit-budget]').forEach(b=>b.addEventListener('click',()=>openBudgetForm(b.dataset.editBudget))); $$('[data-delete-budget]').forEach(b=>b.addEventListener('click',()=>confirmAction('Xóa ngân sách?','Giao dịch vẫn được giữ nguyên.',()=>deleteBudget(b.dataset.deleteBudget))));
-  $$('[data-daily-date]').forEach(b=>b.addEventListener('click',()=>{app.dailyDate=b.dataset.dailyDate;app.dailyMediaDate=null;app.currentMonth=app.dailyDate.slice(0,7);render('daily',false);})); $('[data-daily-today]')?.addEventListener('click',()=>{app.dailyDate=new Date().toISOString().slice(0,10);app.dailyMediaDate=null;app.currentMonth=app.dailyDate.slice(0,7);render('daily',false);});
-  $$('[data-mood]').forEach(b=>b.addEventListener('click',()=>{$$('[data-mood]').forEach(x=>x.classList.remove('active'));b.classList.add('active');})); $('#dailyPhotos')?.addEventListener('change',uploadDailyPhotos); $$('[data-remove-photo]').forEach(b=>b.addEventListener('click',()=>{app.dailyMediaIds=app.dailyMediaIds.filter(id=>id!==b.dataset.removePhoto); const tile=b.closest('.photo-tile');tile?.remove();})); $('[data-save-daily]')?.addEventListener('click',saveDaily); $('[data-delete-daily]')?.addEventListener('click',()=>confirmAction('Xóa nhật ký ngày này?','Nội dung ngày sẽ bị xóa. Ảnh riêng không còn được tham chiếu có thể xóa sau.',deleteDaily));
+  $$('[data-daily-date]').forEach(b=>b.addEventListener('click',()=>{app.dailyDate=b.dataset.dailyDate;app.currentMonth=app.dailyDate.slice(0,7);app.dailyComposerOpen=false;resetJournalDraft();render('daily',false);})); $('[data-daily-today]')?.addEventListener('click',()=>{app.dailyDate=new Date().toISOString().slice(0,10);app.currentMonth=app.dailyDate.slice(0,7);app.dailyComposerOpen=false;resetJournalDraft();render('daily',false);});
+  $$('[data-new-journal]').forEach(b=>b.addEventListener('click',()=>openJournalComposer(null,{focus:true}))); $$('[data-edit-journal]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openJournalComposer(b.dataset.editJournal,{focus:false});}));
+  $('[data-cancel-journal]')?.addEventListener('click',closeJournalComposer); $('[data-save-journal]')?.addEventListener('click',saveJournalEntry); $('[data-delete-journal]')?.addEventListener('click',()=>confirmAction('Xóa bài nhật ký?','Bài này sẽ bị xóa khỏi ngày đã chọn.',deleteJournalEntry));
+  $$('[data-journal-mood]').forEach(b=>b.addEventListener('click',()=>{app.dailyDraftMood=b.dataset.journalMood;$$('[data-journal-mood]').forEach(x=>x.classList.toggle('active',x===b));})); $$('[data-pick-journal-photos]').forEach(b=>b.addEventListener('click',pickJournalPhotos)); $$('[data-remove-journal-photo]').forEach(b=>b.addEventListener('click',()=>{app.dailyMediaIds=app.dailyMediaIds.filter(id=>id!==b.dataset.removeJournalPhoto);b.closest('figure')?.remove();})); $('#journalBody')?.addEventListener('input',e=>{$('#journalWordCount').textContent=`${countWords(e.target.value)} từ`;});
   $$('[data-private-id]').forEach(b=>b.addEventListener('click',()=>{app.privateId=b.dataset.privateId;render('private',false);})); $$('[data-new-private]').forEach(b=>b.addEventListener('click',newPrivate)); $('[data-save-private]')?.addEventListener('click',savePrivate); $('[data-delete-private]')?.addEventListener('click',()=>confirmAction('Xóa trang nhật ký?','Không thể hoàn tác từ giao diện.',deletePrivate)); $('#privateBody')?.addEventListener('input',onPrivateInput); $('#privateTitle')?.addEventListener('input',onPrivateInput); $('#privateSearch')?.addEventListener('input',filterPrivateList);
   $$('[data-calendar-date]').forEach(b=>b.addEventListener('click',()=>{app.calendarDate=b.dataset.calendarDate;render('calendar',false);})); $('[data-open-day]')?.addEventListener('click',e=>{app.dailyDate=e.target.dataset.openDay;app.currentMonth=app.dailyDate.slice(0,7);navigate('daily');});
   $$('[data-add-goal]').forEach(b=>b.addEventListener('click',()=>openGoalForm())); $$('[data-edit-goal]').forEach(b=>b.addEventListener('click',()=>openGoalForm(b.dataset.editGoal))); $$('[data-delete-goal]').forEach(b=>b.addEventListener('click',()=>confirmAction('Xóa mục tiêu?','Chỉ mục tiêu bị xóa; giao dịch không bị ảnh hưởng.',()=>deleteGoal(b.dataset.deleteGoal))));
@@ -372,9 +432,37 @@ async function deleteTx(id){await api(`/api/transactions/${id}`,{method:'DELETE'
 function openBudgetForm(id=null){const b=id?app.data.budgets.find(x=>x.id===id):null;openForm(b?'Sửa ngân sách':'Thêm ngân sách','NGÂN SÁCH',`<form id="budgetForm" class="form-stack"><label class="field"><span>Danh mục</span><select id="budgetCategory">${CATEGORIES.map(c=>`<option ${c===b?.category?'selected':''}>${esc(c)}</option>`).join('')}</select></label><label class="field"><span>Tháng</span><input value="${esc(monthLabel(b?.month||app.currentMonth))}" disabled><input type="hidden" id="budgetMonth" value="${esc(b?.month||app.currentMonth)}"></label><label class="field"><span>Giới hạn chi</span>${moneyField('budgetLimit',b?.limit||'',{placeholder:'Ví dụ: 3.000.000',required:true})}</label><div class="modal-actions"><button type="button" class="button-ghost" data-cancel>Hủy</button><button class="button-primary">Lưu ngân sách</button></div></form>`);$('[data-cancel]',formBody).onclick=closeForm;$('#budgetForm').onsubmit=async e=>{e.preventDefault();const payload={month:$('#budgetMonth').value,category:$('#budgetCategory').value,limit:parseMoneyInput($('#budgetLimit').value)};try{if(b)await api(`/api/budgets/${b.id}`,{method:'PUT',json:payload});else await api('/api/budgets',{method:'POST',json:payload});closeForm();await refreshData();toast('Đã lưu ngân sách.');}catch(err){onError(err);}};}
 async function deleteBudget(id){await api(`/api/budgets/${id}`,{method:'DELETE'});await refreshData();toast('Đã xóa ngân sách.');}
 
-async function uploadDailyPhotos(e){const files=[...e.target.files];if(!files.length)return;const status=$('#uploadStatus');let done=0;for(const file of files){try{status.textContent=`Đang tải ${done+1}/${files.length}: ${file.name}`;const res=await fetch('/api/media',{method:'POST',headers:{'x-csrf-token':app.csrf,'x-file-name':encodeURIComponent(file.name),'content-type':file.type},body:file,credentials:'same-origin'});const j=await res.json();if(!res.ok)throw new Error(j.error||'Không tải được ảnh.');app.dailyMediaIds.push(j.data.id);app.data.media.push(j.data);done++;}catch(err){onError(err);}}status.textContent=`Đã tải ${done}/${files.length} ảnh. Bấm “Lưu nhật ký” để gắn vào ngày này.`;render('daily',false);}
-async function saveDaily(){const mood=$('[data-mood].active')?.dataset.mood||'';try{await api('/api/daily',{method:'PUT',json:{date:app.dailyDate,title:$('#dailyTitle').value,body:$('#dailyBody').value,mood,mediaIds:app.dailyMediaIds}});document.activeElement?.blur?.();document.body.classList.remove('keyboard-open');await refreshData();toast('Đã lưu nhật ký.');}catch(err){onError(err);}}
-async function deleteDaily(){await api(`/api/daily/${encodeURIComponent(app.dailyDate)}`,{method:'DELETE'});await refreshData();toast('Đã xóa nhật ký ngày này.');}
+async function pickJournalPhotos(){
+  captureJournalDraft();
+  const remaining=Math.max(0,12-app.dailyMediaIds.length); if(!remaining){toast('Mỗi bài tối đa 12 ảnh.','error');return;}
+  const status=$('#journalPhotoStatus'); if(status)status.textContent='Đang mở thư viện ảnh…';
+  try{
+    const items=await LocalAPI.pickPhotos(remaining);
+    if(!items.length){if(status)status.textContent='';return;}
+    for(const item of items){if(item?.id&&!app.dailyMediaIds.includes(item.id))app.dailyMediaIds.push(item.id);if(item?.id&&!app.dailyNewMediaIds.includes(item.id))app.dailyNewMediaIds.push(item.id);if(item?.id&&!app.data.media.some(m=>m.id===item.id))app.data.media.push(item);}
+    render('daily',false); toast(`Đã thêm ${items.length} ảnh.`);
+  }catch(err){onError(err);if(status)status.textContent='Không thể chọn ảnh.';}
+}
+async function saveJournalEntry(){
+  captureJournalDraft();
+  const body=String(app.dailyDraftBody||'').trim();
+  if(!body&&!String(app.dailyDraftTitle||'').trim()&&!app.dailyMediaIds.length){toast('Viết gì đó hoặc thêm ảnh trước khi lưu.','error');return;}
+  const payload={date:app.dailyDate,title:app.dailyDraftTitle||'',body:app.dailyDraftBody||'',mood:app.dailyDraftMood||'',mediaIds:app.dailyMediaIds};
+  try{
+    const removedOriginal=app.dailyOriginalMediaIds.filter(id=>!app.dailyMediaIds.includes(id));
+    if(app.dailyEditorId)await api(`/api/journal/${app.dailyEditorId}`,{method:'PUT',json:payload});
+    else await api('/api/journal',{method:'POST',json:payload});
+    document.activeElement?.blur?.(); document.body.classList.remove('keyboard-open');
+    app.dailyComposerOpen=false; resetJournalDraft(); await refreshData({renderNow:false});
+    if(removedOriginal.length)await cleanupUnreferencedMedia(removedOriginal);
+    render('daily',false); toast('Đã lưu bài nhật ký.');
+  }catch(err){onError(err);}
+}
+async function deleteJournalEntry(){
+  if(!app.dailyEditorId)return;
+  const media=[...(journalEntryById(app.dailyEditorId)?.mediaIds||[])];
+  try{await api(`/api/journal/${app.dailyEditorId}`,{method:'DELETE'});app.dailyComposerOpen=false;resetJournalDraft();await refreshData({renderNow:false});if(media.length)await cleanupUnreferencedMedia(media);render('daily',false);toast('Đã xóa bài nhật ký.');}catch(err){onError(err);}
+}
 
 async function newPrivate(){try{const r=await api('/api/private',{method:'POST',json:{title:'Trang chưa đặt tên',body:''}});app.privateId=r.data.id;await refreshData();toast('Đã tạo trang mới.');}catch(err){onError(err);}}
 function onPrivateInput(){if(!app.privateId)return;$('#privateCount').textContent=`${countWords($('#privateBody').value)} từ`;$('#privateSaveState').textContent='Đang chờ lưu...';clearTimeout(app.privateSaveTimer);app.privateSaveTimer=setTimeout(()=>savePrivate(true),900);}

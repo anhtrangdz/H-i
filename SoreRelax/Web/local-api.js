@@ -258,6 +258,37 @@
       return { status: 200, body: { ok: true, data } };
     }
 
+
+    if (method === 'POST' && p === '/api/journal') {
+      const date = dateISO(body.date); if (!date) throw new APIError('Ngày không hợp lệ.');
+      const mediaIds = Array.isArray(body.mediaIds) ? [...new Set(body.mediaIds.map(x => cleanText(x, 100)).filter(id => state.media.some(m => m.id === id)))] : [];
+      const entry = {
+        id: crypto.randomUUID(), date,
+        title: cleanText(body.title, 200), body: cleanLong(body.body, 100000), mood: cleanText(body.mood, 40),
+        mediaIds, tags: Array.isArray(body.tags) ? body.tags.map(x => cleanText(x, 40)).filter(Boolean).slice(0, 50) : [],
+        createdAt: nowISO(), updatedAt: nowISO()
+      };
+      await mutate(() => state.dailyEntries.push(entry));
+      return { status: 201, body: { ok: true, data: entry } };
+    }
+
+    if ((method === 'PUT' || method === 'DELETE') && p.startsWith('/api/journal/')) {
+      const id = cleanText(p.slice('/api/journal/'.length), 100);
+      const i = state.dailyEntries.findIndex(x => x.id === id);
+      if (i < 0) throw new APIError('Không tìm thấy bài nhật ký.', 404);
+      if (method === 'DELETE') { await mutate(() => state.dailyEntries.splice(i, 1)); return { status: 204 }; }
+      const date = dateISO(body.date); if (!date) throw new APIError('Ngày không hợp lệ.');
+      const mediaIds = Array.isArray(body.mediaIds) ? [...new Set(body.mediaIds.map(x => cleanText(x, 100)).filter(mid => state.media.some(m => m.id === mid)))] : [];
+      const data = await mutate(() => {
+        const e = state.dailyEntries[i];
+        e.date = date; e.title = cleanText(body.title, 200); e.body = cleanLong(body.body, 100000);
+        e.mood = cleanText(body.mood, 40); e.mediaIds = mediaIds;
+        e.tags = Array.isArray(body.tags) ? body.tags.map(x => cleanText(x, 40)).filter(Boolean).slice(0, 50) : [];
+        e.updatedAt = nowISO(); return clone(e);
+      });
+      return { status: 200, body: { ok: true, data } };
+    }
+
     if (method === 'PUT' && p === '/api/daily') {
       const date = dateISO(body.date); if (!date) throw new APIError('Ngày không hợp lệ.');
       const mediaIds = Array.isArray(body.mediaIds) ? [...new Set(body.mediaIds.map(x => cleanText(x, 100)).filter(id => state.media.some(m => m.id === id)))] : [];
@@ -388,6 +419,21 @@
     async restoreBackup(password) {
       const result = await NativeBridge.call('restoreBackupPicker', { password });
       state = null; await ensureLoaded(); return result;
+    },
+    async pickPhotos(maxSelection = 8) {
+      const result = await NativeBridge.call('pickPhotos', { maxSelection: Math.max(1, Math.min(12, Number(maxSelection) || 8)) });
+      const items = Array.isArray(result?.items) ? result.items : [];
+      if (items.length) {
+        try {
+          await mutate(() => {
+            for (const item of items) if (item?.id && !state.media.some(m => m.id === item.id)) state.media.push(item);
+          });
+        } catch (err) {
+          await Promise.all(items.map(item => item?.id ? NativeBridge.call('deleteMedia', { id: item.id }).catch(() => {}) : null));
+          throw err;
+        }
+      }
+      return items;
     },
     async unlockBiometric() { await NativeBridge.call('unlockBiometric'); state = null; await ensureLoaded(); },
     async setBiometric(enabled) { return NativeBridge.call('setBiometric', { enabled: Boolean(enabled) }); },

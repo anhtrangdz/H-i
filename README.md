@@ -1,80 +1,88 @@
-# Sổ Relax iOS R4 — iPhone-first local app
+# Sổ Relax iOS R5
 
-R4 rebuild toàn bộ visual layer của Sổ Relax cho iPhone. App vẫn local-first: không VPS, không domain, không Node server khi chạy trên máy.
+Offline/local-first iPhone app. No VPS, domain, Node server, or Internet connection is required for normal use.
 
-## R4 khác gì R3
+## What changed in R5
 
-- Home, Tài chính, Nhật ký và Cài đặt được dựng lại hoàn toàn theo hierarchy iOS: large title, material surface, tab bar, sheet, grouped settings và edge-to-edge artwork.
-- Các màn Giao dịch, Ngân sách, Lịch, Mục tiêu, Phân tích, Nhật ký cá nhân được re-skin theo cùng design system.
-- 12 visual asset high-resolution được bundle local và thực sự được dùng trong UI; không dùng padding/file rác để tăng dung lượng.
-- `Viết nhật ký` điều hướng bằng state nội bộ, render editor ngay rồi focus `#dailyBody` trong cùng tap event. Không dùng hash/sessionStorage.
-- VisualViewport được dùng để nhận biết keyboard; bottom tab bar tự né khi bàn phím mở.
-- Save journal chủ động blur editor để dismiss keyboard sau khi lưu.
-- Biometrics không nằm trong UX chính; password local là đường mở khóa chuẩn.
+R5 focuses on broken interaction logic and internal editors, not the already-acceptable outer shell.
 
-## Responsive iPhone
+- Journal now supports multiple independent entries per day.
+- Saving a journal entry exits edit mode and returns to the day's saved entries.
+- **Write new** always creates a clean draft.
+- Existing entries can be opened deliberately for editing/deleting.
+- Mood selection is real application state and persists when saved.
+- Photos use native iOS `PHPickerViewController` rather than a WebKit file input.
+- Global routing bug fixed: controls inside `#pageWrap` can no longer be mistaken for navigation.
+- Quick Add rebuilt as an iPhone bottom-sheet editor.
+- Account, budget, goal, profile, password, backup and other input forms share one iOS-style form system.
+- Layout is designed first for iPhone SE 2022 (375×667pt) and then tested across small/large iPhones and landscape.
+- Face ID / Touch ID is not part of the R5 primary UX; local password unlock remains the supported path.
 
-UI dùng safe area `env(safe-area-inset-*)`, `100dvh`, scroll containers và breakpoint mobile-first. Browser QA render 10 route trên 14 viewport:
+## Architecture
 
-- Portrait/fallback: 320, 350, 360, 375, 390, 393, 402, 420, 430, 440 pt.
-- Landscape: 844×390, 874×402, 932×430, 956×440.
+- UIKit `WKWebView` shell.
+- Bundled HTML/CSS/JS; no online website is loaded.
+- `SecureVault.swift`: encrypted local state and media.
+- `NativeBridge.swift`: JS ↔ native bridge.
+- `PHPickerViewController`: native photo selection.
+- `UIDocumentPickerViewController`: backup restore.
+- `UIActivityViewController`: backup export.
 
-Các control chính được thiết kế quanh touch target iOS; QA chặn control nhỏ hơn 28 pt và horizontal overflow.
+## Build on GitHub
 
-## Visual assets R4
+Upload the contents of this repository to the root of a GitHub repository.
 
-`SoreRelax/Web/assets/r4/` chứa artwork local cho Home, Finance, Journal, Calendar, Goals, Insights, Settings, Auth và backup surfaces. Tổng bundle asset >5 MB raw và workflow kiểm tra các asset quan trọng có mặt trong `.app` trước khi đóng IPA.
+The included workflow is:
 
-## Kiến trúc
+`.github/workflows/build-ipa.yml`
 
-- `SoreRelax/Web/` — UI + LocalAPI compatibility layer.
-- `SoreRelax/SecureVault.swift` — AES-GCM vault, password-derived key protection, encrypted backup/media.
-- `SoreRelax/NativeBridge.swift` — JS ↔ Swift bridge.
-- `SoreRelax/MediaSchemeHandler.swift` — local encrypted media scheme.
-- `SoreRelax/ViewController.swift` — WKWebView shell, privacy cover, Files/share integration.
-- `project.yml` — XcodeGen config, bundle ID `com.prix.sorelax`.
-- `.github/workflows/build-ipa.yml` — unsigned iPhone Release build on GitHub macOS runner.
+It builds an unsigned iPhone app on GitHub's macOS runner and packages:
 
-Version: `1.1.0 (4)`.
-Deployment target: iOS 15+.
+- `SoreRelax-unsigned.ipa`
+- `SoreRelax-unsigned.ipa.sha256`
+- `build-xcode.log`
 
-## Build trên GitHub
+The artifact is named `SoreRelax-R5-unsigned-IPA`.
 
-1. Giải nén ZIP.
-2. Upload **nội dung bên trong thư mục R4** vào root repository GitHub (`main` hoặc `master`).
-3. GitHub → **Actions** → **Build unsigned IPA** → Run workflow.
-4. Tải artifact `SoreRelax-R4-unsigned-IPA`.
-5. Artifact chứa `SoreRelax-unsigned.ipa`, SHA256 và `build-xcode.log`.
-6. Import IPA vào SideStore để ký/cài.
+The resulting unsigned IPA can then be signed/sideloaded with the signing workflow you use on your iPhone.
 
-Workflow cưỡng chế copy nguyên `SoreRelax/Web` vào `SoreRelax.app/Web` trước khi đóng IPA và kiểm tra `index.html`, `r4.css`, cùng R4 artwork trong payload.
+## Bundle identity
 
-## QA
+- Bundle ID: `com.prix.sorelax`
+- Marketing version: `1.2.0`
+- Build: `5`
+- Deployment target: iOS 15+
+- Device family: iPhone
 
-Dependency-free / CI:
+Keep the bundle ID unchanged between updates if you want iOS to treat later builds as updates to the same app.
 
-```bash
+## Local QA
+
+Core dependency-free checks:
+
+```sh
 node --check SoreRelax/Web/native-bridge.js
 node --check SoreRelax/Web/local-api.js
 node --check SoreRelax/Web/app.js
 node tests/local-api.test.js
+python3 tests/native_contract.py
 python3 scripts/qa_repo.py
 ```
 
-Browser release QA (Chromium + Playwright):
+Browser interaction/layout tests (requires Chromium + Python Playwright):
 
-```bash
+```sh
 python3 tests/ui_interaction_smoke.py
+python3 tests/form_workflow_smoke.py
 python3 tests/responsive_smoke.py
+python3 tests/dark_responsive_smoke.py
+python3 tests/auth_responsive_smoke.py
 ```
 
-`ui_interaction_smoke.py` kiểm tra riêng Home → Viết nhật ký → Daily → editor focus, save daily, More sheet và Quick Add transaction.
+## Photo privacy behavior
 
-## Dữ liệu và bảo mật
+R5 intentionally uses the system Photos picker. Tapping **Add photo** opens the iOS picker and the user selects only the photos to give to Sổ Relax. A blanket “allow access to all photos” prompt is therefore not required for this flow.
 
-- Không gửi dữ liệu lên Internet trong runtime (`connect-src 'none'`).
-- Password không lưu plaintext.
-- Vault/media dùng AES-GCM.
-- App background có privacy cover.
-- Backup `.sobackup` được mã hóa trước khi xuất qua Files/Share Sheet.
-- Luôn export backup trước khi uninstall app; xóa app có thể xóa sandbox local.
+## Important
+
+The Linux QA environment can parse Swift syntax but cannot run Apple's `xcodebuild`. The GitHub Actions macOS job is the final native compile gate. If that gate fails, use the generated `build-xcode.log` to diagnose the exact Swift/Xcode error.

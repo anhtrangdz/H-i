@@ -1,13 +1,15 @@
 import UIKit
 import WebKit
 import UniformTypeIdentifiers
+import PhotosUI
 
-final class ViewController: UIViewController, UIDocumentPickerDelegate, WKNavigationDelegate {
+final class ViewController: UIViewController, UIDocumentPickerDelegate, WKNavigationDelegate, PHPickerViewControllerDelegate {
     private(set) var webView: WKWebView!
     private let bridge = NativeBridge()
     private let mediaHandler = MediaSchemeHandler()
     private var privacyCover: UIVisualEffectView?
     private var pendingRestore: (requestID: String, password: String)?
+    private var pendingPhotoRequestID: String?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -102,6 +104,76 @@ final class ViewController: UIViewController, UIDocumentPickerDelegate, WKNaviga
         picker.delegate = self
         picker.allowsMultipleSelection = false
         present(picker, animated: true)
+    }
+
+    func presentPhotoPicker(requestID: String, maxSelection: Int) {
+        guard pendingPhotoRequestID == nil else {
+            bridge.reject(id: requestID, message: "Trình chọn ảnh đang mở.")
+            return
+        }
+        pendingPhotoRequestID = requestID
+        var configuration = PHPickerConfiguration()
+        configuration.filter = .images
+        configuration.selectionLimit = max(1, min(12, maxSelection))
+        configuration.preferredAssetRepresentationMode = .current
+        let picker = PHPickerViewController(configuration: configuration)
+        picker.delegate = self
+        present(picker, animated: true)
+    }
+
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        guard let requestID = pendingPhotoRequestID else { return }
+        pendingPhotoRequestID = nil
+        guard !results.isEmpty else {
+            bridge.resolve(id: requestID, result: ["items": []])
+            return
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            let group = DispatchGroup()
+            let lock = NSLock()
+            var items: [[String: Any]] = []
+            var skipped = 0
+
+            for result in results {
+                let provider = result.itemProvider
+                guard let typeIdentifier = provider.registeredTypeIdentifiers.first(where: { identifier in
+                    UTType(identifier)?.conforms(to: .image) == true
+                }) else {
+                    skipped += 1
+                    continue
+                }
+                group.enter()
+                provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, _ in
+                    defer { group.leave() }
+                    guard let data, data.count >= 16, data.count <= 25 * 1024 * 1024 else {
+                        lock.lock(); skipped += 1; lock.unlock(); return
+                    }
+                    let id = UUID().uuidString.lowercased()
+                    let type = UTType(typeIdentifier)
+                    let mime = type?.preferredMIMEType ?? "image/jpeg"
+                    let ext = type?.preferredFilenameExtension ?? "jpg"
+                    let rawName = provider.suggestedName?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let name = (rawName?.isEmpty == false ? rawName! : "Ảnh-\(id.prefix(8)).\(ext)")
+                    do {
+                        try SecureVault.shared.saveMedia(id: id, mime: mime, bytes: data)
+                        let item: [String: Any] = [
+                            "id": id, "mime": mime, "size": data.count, "name": name,
+                            "createdAt": ISO8601DateFormatter().string(from: Date())
+                        ]
+                        lock.lock(); items.append(item); lock.unlock()
+                    } catch {
+                        lock.lock(); skipped += 1; lock.unlock()
+                    }
+                }
+            }
+
+            group.wait()
+            let sorted = items.sorted { ($0["createdAt"] as? String ?? "") < ($1["createdAt"] as? String ?? "") }
+            self.bridge.resolve(id: requestID, result: ["items": sorted, "skipped": skipped])
+        }
     }
 
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {

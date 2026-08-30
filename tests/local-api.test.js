@@ -13,6 +13,7 @@ const native = {
   failNextSave: false,
   biometricAvailable: true,
   biometricEnabled: false,
+  lastPickedId: null,
 };
 
 global.NativeBridge = {
@@ -31,6 +32,7 @@ global.NativeBridge = {
       case 'unlockBiometric': native.unlocked=true; return {ok:true};
       case 'exportBackup': return {ok:true};
       case 'restoreBackupPicker': return {ok:true};
+      case 'pickPhotos': { const id='picked-'+Math.random().toString(36).slice(2); native.lastPickedId=id; native.media.set(id,{mime:'image/jpeg',picked:true}); return {items:[{id,mime:'image/jpeg',size:1234,name:'picked.jpg',createdAt:new Date().toISOString()}],skipped:0}; }
       default: throw new Error(`unknown native method ${method}`);
     }
   }
@@ -66,6 +68,19 @@ async function req(path, method='GET', json) {
   let mediaRes=await fetch('/api/media',{method:'POST',headers:{'content-type':'image/png','x-file-name':encodeURIComponent('ảnh test.png')},body:new Blob([imgBytes],{type:'image/png'})});
   assert.equal(mediaRes.status,201); const mediaBody=await mediaRes.json(); const mid=mediaBody.data.id; assert(native.media.has(mid));
   x=await req('/api/daily','PUT',{date:'2026-08-30',title:'Ngày test',body:'hello',mood:'Vui',mediaIds:[mid]}); assert.equal(x.r.status,200);
+  // R5 journal model: multiple independent entries can exist on the same day.
+  let j1=await req('/api/journal','POST',{date:'2026-08-30',title:'Bài 1',body:'one',mood:'Vui',mediaIds:[mid]}); assert.equal(j1.r.status,201);
+  let j2=await req('/api/journal','POST',{date:'2026-08-30',title:'Bài 2',body:'two',mood:'Ổn',mediaIds:[]}); assert.equal(j2.r.status,201);
+  x=await req('/api/data'); assert(x.b.data.dailyEntries.filter(e=>e.date==='2026-08-30').length>=3);
+  x=await req(`/api/journal/${j2.b.data.id}`,'PUT',{date:'2026-08-30',title:'Bài 2 sửa',body:'two edited',mood:'Bình yên',mediaIds:[]}); assert.equal(x.b.data.title,'Bài 2 sửa');
+  x=await req(`/api/journal/${j1.b.data.id}`,'DELETE'); assert.equal(x.r.status,204);
+
+  // Native private photo picker metadata is persisted transactionally.
+  const picked=await LocalAPI.pickPhotos(2); assert.equal(picked.length,1); assert(native.media.has(picked[0].id));
+  x=await req('/api/data'); assert(x.b.data.media.some(m=>m.id===picked[0].id));
+  native.failNextSave=true;
+  let pickerFailed=false; try { await LocalAPI.pickPhotos(1); } catch { pickerFailed=true; }
+  assert(pickerFailed); assert(!native.media.has(native.lastPickedId));
   x=await req(`/api/media/${mid}`,'DELETE'); assert.equal(x.r.status,409);
   x=await req('/api/daily','PUT',{date:'2026-08-30',title:'Ngày test',body:'hello',mood:'Vui',mediaIds:[]}); assert.equal(x.r.status,200);
   x=await req(`/api/media/${mid}`,'DELETE'); assert.equal(x.r.status,204); assert(!native.media.has(mid));

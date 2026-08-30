@@ -35,9 +35,9 @@ STATE = {
 }
 
 VIEWPORTS = [
-    (320,568), (350,700), (360,780), (375,812), (390,844), (393,852),
+    (320,568), (350,700), (360,780), (375,667), (375,812), (390,844), (393,852),
     (402,874), (420,912), (430,932), (440,956),
-    (844,390), (874,402), (932,430), (956,440),
+    (667,375), (844,390), (874,402), (932,430), (956,440),
 ]
 ROUTES = ["home","money","transactions","budgets","daily","private","calendar","goals","insights","settings"]
 
@@ -78,6 +78,7 @@ def init_script():
             case 'unlock': native.unlocked=true; result={ok:true}; break;
             case 'setBiometric': native.biometricEnabled=!!msg.params.enabled; result=native; break;
             case 'unlockBiometric': native.unlocked=true; result={ok:true}; break;
+            case 'pickPhotos': result={items:[{id:'photo-smoke-1',mime:'image/jpeg',size:1024,name:'Smoke.jpg',createdAt:new Date().toISOString()}],skipped:0}; break;
           }
           respond(msg.id, result, null);
         } catch (e) { respond(msg.id, null, String(e)); }
@@ -90,6 +91,7 @@ def rendered_html():
     html = (WEB / "index.html").read_text(encoding="utf-8")
     css = (WEB / "styles.css").read_text(encoding="utf-8")
     r4css = (WEB / "r4.css").read_text(encoding="utf-8")
+    r5css = (WEB / "r5.css").read_text(encoding="utf-8")
     bridge = (WEB / "native-bridge.js").read_text(encoding="utf-8")
     local_api = (WEB / "local-api.js").read_text(encoding="utf-8")
     app = (WEB / "app.js").read_text(encoding="utf-8")
@@ -100,6 +102,7 @@ def rendered_html():
     html = re.sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>\s*', '', html)
     html = html.replace('<link rel="stylesheet" href="./styles.css">', f'<style>{css}</style>')
     html = html.replace('<link rel="stylesheet" href="./r4.css">', f'<style>{r4css}</style>')
+    html = html.replace('<link rel="stylesheet" href="./r5.css">', f'<style>{r5css}</style>')
     prep = '<script>' + init_script() + '</script>'
     html = html.replace('<script src="./native-bridge.js" defer></script>', prep + '<script>' + bridge + '</script>')
     html = html.replace('<script src="./local-api.js" defer></script>', '<script>' + local_api + '</script>')

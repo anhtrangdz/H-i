@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('responsive_smoke',ROOT/'tests'/'responsive_smoke.py')
 smoke=importlib.util.module_from_spec(spec); assert spec and spec.loader; spec.loader.exec_module(smoke)
-VIEWPORTS=[(320,568),(390,844),(440,956),(844,390),(956,440)]
+VIEWPORTS=[(320,568),(375,667),(390,844),(440,956),(667,375),(844,390),(956,440)]
 
 def main():
     from playwright.sync_api import sync_playwright

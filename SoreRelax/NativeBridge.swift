@@ -23,6 +23,15 @@ final class NativeBridge: NSObject, WKScriptMessageHandler {
             return
         }
 
+        if method == "pickPhotos" {
+            let maxSelection = max(1, min(12, params["maxSelection"] as? Int ?? 8))
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let vc = self.viewController else { self?.reject(id: id, message: "Không mở được trình chọn ảnh."); return }
+                vc.presentPhotoPicker(requestID: id, maxSelection: maxSelection)
+            }
+            return
+        }
+
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             do {
