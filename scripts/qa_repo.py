@@ -31,4 +31,16 @@ cat=json.loads((root/'SoreRelax'/'Assets.xcassets'/'AppIcon.appiconset'/'Content
 for item in cat['images']:
     if 'filename' in item and not (root/'SoreRelax'/'Assets.xcassets'/'AppIcon.appiconset'/item['filename']).exists():
         print('MISSING_ICON',item['filename']);sys.exit(1)
+
+# CI packaging must force the Web directory into the final .app bundle because
+# the runtime resolves resources from Bundle.main/Web.
+workflow=(root/'.github'/'workflows'/'build-ipa.yml').read_text()
+for needle in [
+    '/usr/bin/ditto "$PWD/SoreRelax/Web" "$APP/Web"',
+    'test -f "$APP/Web/index.html"',
+    "grep -Fq 'Payload/SoreRelax.app/Web/index.html' ipa-contents.txt",
+]:
+    if needle not in workflow:
+        print('MISSING_WEB_BUNDLE_GUARD',needle);sys.exit(1)
+
 print('REPO_QA=PASS')

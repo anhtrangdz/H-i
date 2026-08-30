@@ -63,3 +63,8 @@ Web UI có safe-area support (`env(safe-area-inset-*)`) và breakpoint cho iPhon
 ## Lưu ý khi update
 
 Giữ nguyên `PRODUCT_BUNDLE_IDENTIFIER = com.prix.sorelax` ở các bản sau để update cùng app identity. Luôn xuất backup trước khi xóa app; việc uninstall có thể xóa dữ liệu sandbox local.
+
+
+## CI packaging note
+
+The workflow includes a **Web bundle packaging guard**. After Xcode finishes the unsigned native build, CI explicitly places `SoreRelax/Web` at `SoreRelax.app/Web` before creating the IPA, then verifies `Payload/SoreRelax.app/Web/index.html` exists inside the archive. This avoids resource-folder flattening differences between Xcode/XcodeGen versions.
