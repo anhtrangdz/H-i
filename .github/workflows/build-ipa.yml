@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Select Xcode 26 and show tool versions
         run: |
@@ -67,12 +67,30 @@ jobs:
           set -euxo pipefail
           APP="$PWD/build/DerivedData/Build/Products/Release-iphoneos/SoreRelax.app"
           test -d "$APP"
+
+          # XcodeGen/Xcode can flatten a folder-reference resource in some versions.
+          # The runtime intentionally loads Bundle.main/Web/index.html, so enforce
+          # that exact on-device bundle layout before the unsigned IPA is signed.
+          rm -rf "$APP/Web"
+          mkdir -p "$APP/Web"
+          /usr/bin/ditto "$PWD/SoreRelax/Web" "$APP/Web"
+
           test -f "$APP/Web/index.html"
+          test -f "$APP/Web/styles.css"
+          test -f "$APP/Web/app.js"
+          test -f "$APP/Web/local-api.js"
+          test -f "$APP/Web/native-bridge.js"
+          echo "Embedded Web payload:"
+          find "$APP/Web" -type f -print | sort
+
           rm -rf Payload SoreRelax-unsigned.ipa
           mkdir Payload
-          cp -R "$APP" Payload/
+          /usr/bin/ditto "$APP" "Payload/SoreRelax.app"
           /usr/bin/zip -qry SoreRelax-unsigned.ipa Payload
           shasum -a 256 SoreRelax-unsigned.ipa | tee SoreRelax-unsigned.ipa.sha256
+          /usr/bin/unzip -t SoreRelax-unsigned.ipa
+          /usr/bin/unzip -l SoreRelax-unsigned.ipa > ipa-contents.txt
+          grep -Fq 'Payload/SoreRelax.app/Web/index.html' ipa-contents.txt
           ls -lh SoreRelax-unsigned.ipa
 
       - name: Upload IPA artifact
