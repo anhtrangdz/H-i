@@ -1,0 +1,52 @@
+name: SoreRelax
+options:
+  minimumXcodeGenVersion: 2.40.0
+  deploymentTarget:
+    iOS: "15.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    SUPPORTS_MACCATALYST: NO
+    GENERATE_INFOPLIST_FILE: NO
+    CLANG_ENABLE_MODULES: YES
+    ENABLE_BITCODE: NO
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 1.0.0
+targets:
+  SoreRelax:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: SoreRelax
+        excludes:
+          - Web
+          - Assets.xcassets
+          - Info.plist
+    resources:
+      - path: SoreRelax/Web
+        type: folder
+      - path: SoreRelax/Assets.xcassets
+    info:
+      path: SoreRelax/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.prix.sorelax
+        PRODUCT_NAME: SoreRelax
+        INFOPLIST_FILE: SoreRelax/Info.plist
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+        DEAD_CODE_STRIPPING: YES
+        SWIFT_COMPILATION_MODE: wholemodule
+schemes:
+  SoreRelax:
+    build:
+      targets:
+        SoreRelax: all
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3eee3">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: sorelax-media:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Sổ — Tài chính & Nhật ký</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <section class="auth-screen" id="authScreen">
+    <div class="auth-visual" aria-hidden="true">
+      <img class="ambient-scene" src="./assets/visuals/window-scene.webp" alt="" decoding="async" fetchpriority="high">
+      <div class="auth-visual-copy"><span>Sổ</span><p>Tài chính và nhật ký, trong một không gian riêng.</p></div>
+    </div>
+    <div class="auth-panel">
+      <form class="auth-card" id="loginForm" hidden>
+        <span class="eyebrow">ĐĂNG NHẬP</span>
+        <h1>Chào mừng trở lại.</h1>
+        <p>Dữ liệu được mã hóa và lưu cục bộ trên iPhone. Không cần máy chủ hay Internet.</p>
+        <label class="field"><span>Mật khẩu</span><input id="loginPassword" type="password" autocomplete="current-password" minlength="10" required></label>
+        <button class="button-primary wide" type="submit">Mở Sổ</button>
+        <button class="button-soft wide biometric-login" id="biometricLogin" type="button" hidden>Face ID · Mở nhanh</button>
+        <div class="form-error" id="loginError"></div>
+      </form>
+      <form class="auth-card" id="setupForm" hidden>
+        <span class="eyebrow">THIẾT LẬP LẦN ĐẦU</span>
+        <h1>Tạo khóa cho Sổ.</h1>
+        <p>Mật khẩu dùng để mở khóa kho dữ liệu mã hóa trên thiết bị. Mật khẩu không được lưu dạng rõ.</p>
+        <label class="field"><span>Tên hiển thị</span><input id="setupName" value="Prix" maxlength="60" required></label>
+        <label class="field"><span>Mật khẩu mới</span><input id="setupPassword" type="password" autocomplete="new-password" minlength="10" required></label>
+        <label class="field"><span>Nhập lại mật khẩu</span><input id="setupPasswordConfirm" type="password" autocomplete="new-password" minlength="10" required></label>
+        <button class="button-primary wide" type="submit">Hoàn tất thiết lập</button>
+        <div class="form-error" id="setupError"></div>
+      </form>
+    </div>
+  </section>
+
+  <div class="app-shell" id="appShell" hidden>
+    <aside class="sidebar" aria-label="Điều hướng chính">
+      <div class="brand-wrap">
+        <button class="brand" data-route="home" aria-label="Về trang chủ">
+          <span class="brand-mark">S</span>
+          <span class="brand-copy"><strong>Sổ</strong><small>của riêng bạn</small></span>
+        </button>
+        <button class="sidebar-collapse" id="sidebarCollapse" aria-label="Thu gọn thanh bên">‹</button>
+      </div>
+
+      <nav class="nav-list">
+        <button class="nav-item active" data-route="home"><span class="nav-glyph">⌂</span><span>Tổng quan</span></button>
+        <button class="nav-item" data-route="money"><span class="nav-glyph">◒</span><span>Tài chính</span></button>
+        <button class="nav-item" data-route="transactions"><span class="nav-glyph">↕</span><span>Giao dịch</span></button>
+        <button class="nav-item" data-route="budgets"><span class="nav-glyph">▤</span><span>Ngân sách</span></button>
+        <div class="nav-separator"><span>NHẬT KÝ</span></div>
+        <button class="nav-item" data-route="daily"><span class="nav-glyph">☼</span><span>Hằng ngày</span></button>
+        <button class="nav-item" data-route="private"><span class="nav-glyph">✎</span><span>Cá nhân</span></button>
+        <div class="nav-separator"><span>KHÁC</span></div>
+        <button class="nav-item" data-route="calendar"><span class="nav-glyph">□</span><span>Lịch</span></button>
+        <button class="nav-item" data-route="goals"><span class="nav-glyph">◇</span><span>Mục tiêu</span></button>
+        <button class="nav-item" data-route="insights"><span class="nav-glyph">⌁</span><span>Phân tích</span></button>
+        <button class="nav-item" data-route="settings"><span class="nav-glyph">⚙</span><span>Cài đặt</span></button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="soft-note"><span class="soft-note-icon">●</span><div><strong>Dữ liệu đang được lưu.</strong><small id="saveStatus">Mã hóa cục bộ trên iPhone</small></div></div>
+        <div class="profile-mini"><div class="avatar" id="profileAvatar">P</div><div class="profile-copy"><strong id="profileName">Prix</strong><small>Không gian cá nhân</small></div><button class="icon-button" id="lockButton" title="Khóa và đăng xuất">⌾</button></div>
+      </div>
+    </aside>
+
+    <main class="main-column">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu" aria-label="Mở điều hướng">☰</button>
+        <button class="search-trigger" id="searchTrigger"><span class="search-icon">⌕</span><span>Tìm giao dịch, nhật ký, mục tiêu...</span><kbd>Ctrl K</kbd></button>
+        <div class="topbar-spacer"></div>
+        <button class="time-pill" id="moodTheme" title="Đổi không khí giao diện"><span class="sun-dot"></span><span>Thư giãn</span></button>
+        <button class="icon-button" id="privacyButton" title="Ẩn số tiền">◉</button>
+        <button class="quick-add" id="quickAdd"><span>＋</span> Thêm nhanh</button>
+      </header>
+      <div class="page-wrap" id="pageWrap" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" id="mobileNav" aria-label="Điều hướng di động" hidden>
+    <button class="mobile-nav-item active" data-route="home"><span>⌂</span><small>Trang chủ</small></button>
+    <button class="mobile-nav-item" data-route="transactions"><span>↕</span><small>Giao dịch</small></button>
+    <button class="mobile-fab" id="mobileQuickAdd" aria-label="Thêm nhanh">＋</button>
+    <button class="mobile-nav-item" data-route="daily"><span>✎</span><small>Nhật ký</small></button>
+    <button class="mobile-nav-item" data-route="settings"><span>⚙</span><small>Cài đặt</small></button>
+  </nav>
+
+  <div class="modal-backdrop" id="quickBackdrop" hidden>
+    <section class="modal-sheet" id="quickModal" role="dialog" aria-modal="true" aria-labelledby="quickTitle">
+      <div class="modal-head"><div><span class="eyebrow">THÊM NHANH</span><h2 id="quickTitle">Thêm giao dịch</h2></div><button class="icon-button" data-close="quick" aria-label="Đóng">×</button></div>
+      <div class="quick-tabs" role="tablist"><button class="quick-tab active" data-type="expense">Chi tiêu</button><button class="quick-tab" data-type="income">Thu nhập</button><button class="quick-tab" data-type="transfer">Chuyển tiền</button><button class="quick-tab" data-type="journal">Nhật ký</button></div>
+      <form id="quickForm" class="quick-form">
+        <div class="amount-field" id="amountBlock"><label for="quickAmount">Số tiền</label><div class="amount-input-wrap"><input id="quickAmount" data-money-input="1" inputmode="numeric" autocomplete="off" placeholder="0"><span>VND</span></div></div>
+        <div class="form-grid money-fields" id="quickMoneyFields">
+          <label class="field"><span id="quickCategoryLabel">Danh mục</span><select id="quickCategory"></select></label>
+          <label class="field"><span id="quickAccountLabel">Tài khoản</span><select id="quickAccount"></select></label>
+          <label class="field transfer-only" hidden><span>Đến tài khoản</span><select id="quickToAccount"></select></label>
+          <label class="field"><span>Ngày</span><input id="quickDate" type="date"></label>
+        </div>
+        <label class="toggle-line income-only" hidden><input id="quickAddToMonth" type="checkbox"><span><b>Cộng vào tiền tháng</b><small>Bật khi đây là khoản tiền phát sinh thêm, chưa nằm trong tổng tiền tháng bạn đã nhập.</small></span></label>
+        <label class="full-field"><span id="noteLabel">Ghi chú</span><textarea id="quickNote" rows="4" maxlength="2000" placeholder="Ví dụ: cà phê sáng, tiền điện, làm thêm..."></textarea></label>
+        <div class="modal-actions"><button type="button" class="button-ghost" data-close="quick">Hủy</button><button type="submit" class="button-primary" id="quickSubmit">Lưu giao dịch</button></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="formBackdrop" hidden>
+    <section class="modal-sheet compact" id="formModal" role="dialog" aria-modal="true">
+      <div class="modal-head"><div><span class="eyebrow" id="formEyebrow">CHỈNH SỬA</span><h2 id="formTitle">Cập nhật</h2></div><button class="icon-button" data-close="form" aria-label="Đóng">×</button></div>
+      <div id="formBody"></div>
+    </section>
+  </div>
+
+  <div class="command-backdrop" id="commandBackdrop" hidden>
+    <section class="command-palette" role="dialog" aria-modal="true" aria-label="Tìm kiếm"><div class="command-input-wrap"><span>⌕</span><input id="commandInput" placeholder="Tìm bất cứ thứ gì..." autocomplete="off"><kbd>Esc</kbd></div><div class="command-results" id="commandResults"></div></section>
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+  <datalist id="institutionList"></datalist>
+  <script src="./native-bridge.js" defer></script>
+  <script src="./local-api.js" defer></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>
