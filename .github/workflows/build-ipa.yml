@@ -35,8 +35,10 @@ jobs:
           node --check SoreRelax/Web/local-api.js
           node --check SoreRelax/Web/app.js
           test -f SoreRelax/Web/r4.css
+          test -f SoreRelax/Web/r5.css
           test -f SoreRelax/Web/assets/r4/home-ambient.jpg
           node tests/local-api.test.js
+          python3 tests/native_contract.py
           python3 scripts/qa_repo.py
           plutil -lint SoreRelax/Info.plist
 
@@ -80,6 +82,7 @@ jobs:
           test -f "$APP/Web/index.html"
           test -f "$APP/Web/styles.css"
           test -f "$APP/Web/r4.css"
+          test -f "$APP/Web/r5.css"
           test -f "$APP/Web/assets/r4/home-ambient.jpg"
           test -f "$APP/Web/assets/r4/journal-ambient.jpg"
           test -f "$APP/Web/app.js"
@@ -97,13 +100,14 @@ jobs:
           /usr/bin/unzip -l SoreRelax-unsigned.ipa > ipa-contents.txt
           grep -Fq 'Payload/SoreRelax.app/Web/index.html' ipa-contents.txt
           grep -Fq 'Payload/SoreRelax.app/Web/r4.css' ipa-contents.txt
+          grep -Fq 'Payload/SoreRelax.app/Web/r5.css' ipa-contents.txt
           grep -Fq 'Payload/SoreRelax.app/Web/assets/r4/home-ambient.jpg' ipa-contents.txt
           ls -lh SoreRelax-unsigned.ipa
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SoreRelax-R4-unsigned-IPA
+          name: SoreRelax-R5-unsigned-IPA
           path: |
             SoreRelax-unsigned.ipa
             SoreRelax-unsigned.ipa.sha256
